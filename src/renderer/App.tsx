@@ -3,6 +3,7 @@ import { Stage, Line, Layer, Rect } from 'react-konva';
 import Konva from 'konva';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { Button, TextField } from '@mui/material';
+import { v4 as uuidv4 } from 'uuid';
 
 import Table, { TableData } from 'components/Diagram/Table';
 import * as S from '../components/Home/style';
@@ -17,6 +18,7 @@ interface RectType {
 
 interface NodeType extends RectType {
   id: string;
+  table: TableData;
   connections: string[];
 }
 
@@ -62,26 +64,44 @@ const Hello = () => {
     return node.positionY + node.height / 2;
   };
 
-  useEffect(() => {
-    const nodesToFill: NodeType[] = [
-      {
-        id: 'rect1',
-        positionX: 150,
-        positionY: 150,
+  const generateNodesFromTables = (tablesData: TableData[]): NodeType[] => {
+    return tablesData.map((tableData) => {
+      return {
+        id: tableData.id,
+        table: tableData,
+        positionX: tableData.xPosition,
+        positionY: tableData.yPosition,
         width: 100,
-        height: 100,
-        connections: ['rect2'],
+        height: 20 + tableData.fields.length * 20,
+        connections: tableData.connections,
+      };
+    });
+  };
+
+  useEffect(() => {
+    const fetchTables: TableData[] = [
+      {
+        id: uuidv4(),
+        fields: ['id', 'nome'],
+        name: 'produtos',
+        xPosition: 150,
+        yPosition: 150,
+        connections: [],
       },
       {
-        id: 'rect2',
-        positionX: 450,
-        positionY: 150,
-        width: 100,
-        height: 100,
+        id: uuidv4(),
+        fields: ['id', 'nome'],
+        name: 'tamanhos',
+        xPosition: 450,
+        yPosition: 150,
         connections: [],
       },
     ];
 
+    fetchTables[0].connections.push(fetchTables[1].id);
+    setTables(fetchTables);
+
+    const nodesToFill: NodeType[] = generateNodesFromTables(fetchTables);
     setNodes(nodesToFill);
 
     const generateConnectionLines = () => {
@@ -203,16 +223,22 @@ const Hello = () => {
 
   const handleAddTabelaButtonClick = () => {
     const table = {
+      id: uuidv4(),
       name: nome,
       fields: [campo1, campo2],
       xPosition: 0,
       yPosition: tables && tables.length ? 100 * tables.length : 0,
+      connections: [],
     };
 
     setNome('');
     setCampo1('');
     setCampo2('');
-    setTables([...tables, table]);
+
+    const newTables = [...tables, table];
+    const newNodes = generateNodesFromTables(newTables);
+    setTables(newTables);
+    setNodes(newNodes);
   };
 
   return (
@@ -240,21 +266,29 @@ const Hello = () => {
             {/* yPosition={table.yPosition} */}
             {/* /> */}
             {/* ))} */}
+            {nodes &&
+              nodes.length > 0 &&
+              nodes.map((node) => (
+                <Table
+                  id={node.id}
+                  name={node.table.name}
+                  fields={node.table.fields}
+                  xPosition={node.positionX}
+                  yPosition={node.positionY}
+                  handleDragMove={updatePosition}
+                />
+                // <Rect
+                //   id={node.id}
+                //   x={node.positionX}
+                //   y={node.positionY}
+                //   width={node.width}
+                //   height={node.height}
+                //   draggable
+                //   stroke="black"
+                //   onDragMove={updatePosition}
+                // />
+              ))}
             <Layer x={0} y={0} width={800} height={800}>
-              {nodes &&
-                nodes.length > 0 &&
-                nodes.map((node) => (
-                  <Rect
-                    id={node.id}
-                    x={node.positionX}
-                    y={node.positionY}
-                    width={node.width}
-                    height={node.height}
-                    draggable
-                    stroke="black"
-                    onDragMove={updatePosition}
-                  />
-                ))}
               {connectingLines &&
                 connectingLines.length > 0 &&
                 connectingLines.map((connectingLine) => (
