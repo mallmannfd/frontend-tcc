@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Stage } from 'react-konva';
+import React, { useState, useEffect } from 'react';
+import { Stage, Line, Layer, Rect } from 'react-konva';
+import Konva from 'konva';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { Button, TextField } from '@mui/material';
 
@@ -7,12 +8,194 @@ import Table, { TableData } from 'components/Diagram/Table';
 import * as S from '../components/Home/style';
 import './App.css';
 
+interface RectType {
+  positionX: number;
+  positionY: number;
+  width: number;
+  height: number;
+}
+
+interface NodeType extends RectType {
+  id: string;
+  connections: string[];
+}
+
+interface IConnectingLine {
+  id: string;
+  fromNodeId: string;
+  toNodeId: string;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+}
+
 const Hello = () => {
   const [helperMenuOpen, setHelperMenuOpen] = useState(false);
   const [tables, setTables] = useState<TableData[]>([]);
   const [nome, setNome] = useState('');
   const [campo1, setCampo1] = useState('');
   const [campo2, setCampo2] = useState('');
+  const [nodes, setNodes] = useState<NodeType[]>([]);
+  const [connectingLines, setConnectingLines] = useState<IConnectingLine[]>([]);
+
+  const findIndexByIdAndListWithIdAttribute = (
+    id: string,
+    list: any[]
+  ): number => {
+    return list?.findIndex((node) => node.id === id);
+  };
+
+  const calculateLineFromX = (node: NodeType): number => {
+    return node.positionX + node.width;
+  };
+
+  const calculateLineFromY = (node: NodeType): number => {
+    return node.positionY + node.height / 2;
+  };
+
+  const calculateLineToX = (node: NodeType): number => {
+    return node.positionX;
+  };
+
+  const calculateLineToY = (node: NodeType): number => {
+    return node.positionY + node.height / 2;
+  };
+
+  useEffect(() => {
+    const nodesToFill: NodeType[] = [
+      {
+        id: 'rect1',
+        positionX: 150,
+        positionY: 150,
+        width: 100,
+        height: 100,
+        connections: ['rect2'],
+      },
+      {
+        id: 'rect2',
+        positionX: 450,
+        positionY: 150,
+        width: 100,
+        height: 100,
+        connections: [],
+      },
+    ];
+
+    setNodes(nodesToFill);
+
+    const generateConnectionLines = () => {
+      const newConnectionLines: IConnectingLine[] = [];
+
+      nodesToFill?.forEach((node) => {
+        if (node.connections.length > 0) {
+          node.connections.forEach((destinationNodeId) => {
+            // const connectionLine: IConnectingLine = {};
+
+            const destinationNodeIndex = findIndexByIdAndListWithIdAttribute(
+              destinationNodeId,
+              nodesToFill
+            );
+            const destinationNode = nodesToFill[destinationNodeIndex];
+
+            const connectionLine: IConnectingLine = {
+              id: `${node.id}-to-${destinationNode.id}`,
+              fromNodeId: node.id,
+              toNodeId: destinationNode.id,
+              fromX: calculateLineFromX(node),
+              fromY: calculateLineFromY(node),
+              toX: calculateLineToX(destinationNode),
+              toY: calculateLineToY(destinationNode),
+            };
+
+            newConnectionLines.push(connectionLine);
+          });
+        }
+
+        setConnectingLines(newConnectionLines);
+      });
+    };
+
+    generateConnectionLines();
+  }, []);
+
+  const getNodesIdsConnectingWithMeById = (id: string): string[] => {
+    const idlist: string[] = [];
+
+    nodes.forEach((node) => {
+      if (node.connections.indexOf(id) > -1) {
+        idlist.push(node.id);
+      }
+    });
+
+    return idlist;
+  };
+
+  const updateConnectionLinesByNodeId = (nodeId: string) => {
+    const nodeIndex = findIndexByIdAndListWithIdAttribute(nodeId, nodes);
+    const sourceNode: NodeType = nodes[nodeIndex];
+    const myConnectionIds: string[] = sourceNode.connections;
+    const nodesConnectingWithMeIds: string[] =
+      getNodesIdsConnectingWithMeById(nodeId);
+
+    const newConnectingLines = [...connectingLines];
+
+    const updateInnerConnectionLineList = (
+      fromNode: NodeType,
+      toNode: NodeType
+    ) => {
+      const lineId = `${fromNode.id}-to-${toNode.id}`;
+      const lineIndex = findIndexByIdAndListWithIdAttribute(
+        lineId,
+        newConnectingLines
+      );
+
+      newConnectingLines[lineIndex].fromX = calculateLineFromX(fromNode);
+      newConnectingLines[lineIndex].fromY = calculateLineFromY(fromNode);
+      newConnectingLines[lineIndex].toX = calculateLineToX(toNode);
+      newConnectingLines[lineIndex].toY = calculateLineToY(toNode);
+    };
+
+    myConnectionIds.forEach((destinationNodeId) => {
+      const destinationNodeIndex = findIndexByIdAndListWithIdAttribute(
+        destinationNodeId,
+        nodes
+      );
+
+      const destinationNode: NodeType = nodes[destinationNodeIndex];
+
+      updateInnerConnectionLineList(sourceNode, destinationNode);
+    });
+
+    nodesConnectingWithMeIds.forEach((destinationNodeId) => {
+      const destinationNodeIndex = findIndexByIdAndListWithIdAttribute(
+        destinationNodeId,
+        nodes
+      );
+
+      const destinationNode: NodeType = nodes[destinationNodeIndex];
+
+      updateInnerConnectionLineList(destinationNode, sourceNode);
+    });
+
+    setConnectingLines(newConnectingLines);
+  };
+
+  const updatePosition = (evt: Konva.KonvaEventObject<DragEvent>) => {
+    const nodeToUpdateId = evt.target.attrs.id;
+
+    if (nodes !== null) {
+      const nodeIndex: number = findIndexByIdAndListWithIdAttribute(
+        nodeToUpdateId,
+        nodes
+      );
+      nodes[nodeIndex].positionX = evt.target.attrs.x;
+      nodes[nodeIndex].positionY = evt.target.attrs.y;
+
+      setNodes(nodes);
+      updateConnectionLinesByNodeId(nodeToUpdateId);
+    }
+  };
 
   const handleNovaTabelaButtonClick = () => {
     setHelperMenuOpen(!helperMenuOpen);
@@ -47,16 +230,46 @@ const Hello = () => {
         </S.DiagramTools>
         <S.DiagramBoard>
           <Stage width={1000} height={800}>
-            {tables &&
-              tables.length > 0 &&
-              tables.map((table) => (
-                <Table
-                  name={table.name}
-                  fields={table.fields}
-                  xPosition={table.xPosition}
-                  yPosition={table.yPosition}
-                />
-              ))}
+            {/* {tables && */}
+            {/* tables.length > 0 && */}
+            {/* tables.map((table) => ( */}
+            {/* <Table */}
+            {/* name={table.name} */}
+            {/* fields={table.fields} */}
+            {/* xPosition={table.xPosition} */}
+            {/* yPosition={table.yPosition} */}
+            {/* /> */}
+            {/* ))} */}
+            <Layer x={0} y={0} width={800} height={800}>
+              {nodes &&
+                nodes.length > 0 &&
+                nodes.map((node) => (
+                  <Rect
+                    id={node.id}
+                    x={node.positionX}
+                    y={node.positionY}
+                    width={node.width}
+                    height={node.height}
+                    draggable
+                    stroke="black"
+                    onDragMove={updatePosition}
+                  />
+                ))}
+              {connectingLines &&
+                connectingLines.length > 0 &&
+                connectingLines.map((connectingLine) => (
+                  <Line
+                    id={connectingLine.id}
+                    points={[
+                      connectingLine.fromX,
+                      connectingLine.fromY,
+                      connectingLine.toX,
+                      connectingLine.toY,
+                    ]}
+                    stroke="orange"
+                  />
+                ))}
+            </Layer>
           </Stage>
         </S.DiagramBoard>
       </S.Main>
