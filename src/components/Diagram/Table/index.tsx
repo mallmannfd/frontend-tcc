@@ -18,11 +18,20 @@ export interface TableData {
 }
 
 export interface TableShapeData extends TableData {
-  handleDragMove: (evt: Konva.KonvaEventObject<DragEvent>) => any;
+  handleDragMove?: (evt: Konva.KonvaEventObject<DragEvent>) => void;
+  handleClick?: (evt: Konva.KonvaEventObject<MouseEvent>) => void;
 }
 
 export default (data: TableShapeData) => {
-  const { id, name, fields, xPosition, yPosition, handleDragMove } = data;
+  const {
+    id,
+    name,
+    fields,
+    xPosition,
+    yPosition,
+    handleDragMove,
+    handleClick,
+  } = data;
 
   return (
     <Layer
@@ -31,6 +40,7 @@ export default (data: TableShapeData) => {
       y={yPosition}
       width={100}
       onDragMove={handleDragMove}
+      onClick={handleClick}
       draggable
     >
       <div>

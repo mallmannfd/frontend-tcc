@@ -2,7 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Stage, Line, Layer, Rect } from 'react-konva';
 import Konva from 'konva';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
-import { Button, TextField } from '@mui/material';
+import {
+  Box,
+  Button,
+  List,
+  ListItem,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 
 import Table, { TableData } from 'components/Diagram/Table';
@@ -40,6 +47,9 @@ const Hello = () => {
   const [campo2, setCampo2] = useState('');
   const [nodes, setNodes] = useState<NodeType[]>([]);
   const [connectingLines, setConnectingLines] = useState<IConnectingLine[]>([]);
+  const [tableDataToEdit, setTableDataToEdit] = useState<TableData | null>(
+    null
+  );
 
   const findIndexByIdAndListWithIdAttribute = (
     id: string,
@@ -217,6 +227,16 @@ const Hello = () => {
     }
   };
 
+  const setTableToEdit = (evt: Konva.KonvaEventObject<MouseEvent>) => {
+    const tableIndex = findIndexByIdAndListWithIdAttribute(
+      evt.target.getLayer().attrs.id,
+      tables
+    );
+
+    setTableDataToEdit(tables[tableIndex]);
+    evt.cancelBubble = true;
+  };
+
   const handleNovaTabelaButtonClick = () => {
     setHelperMenuOpen(!helperMenuOpen);
   };
@@ -253,19 +273,48 @@ const Hello = () => {
           >
             Nova Tabela
           </Button>
+          <Button
+            style={{ marginTop: 20 }}
+            variant="contained"
+            fullWidth
+            disabled={tableDataToEdit === null}
+            color="secondary"
+          >
+            Editar Tabela
+          </Button>
+          <hr style={{ marginTop: 20, marginBottom: 30 }} />
+          <Box>
+            {tableDataToEdit === null ? (
+              <Typography variant="body1">
+                Clique em uma entidade para editar!
+                <br />
+                <Typography variant="caption">
+                  Abaixo aparecerá o seu resumo
+                </Typography>
+              </Typography>
+            ) : (
+              <List>
+                <ListItem>
+                  <Typography variant="body2" gutterBottom>
+                    Tabela Selecionada: <b>{tableDataToEdit?.name}</b>
+                  </Typography>
+                </ListItem>
+                <ListItem>
+                  <Typography variant="body2" gutterBottom>
+                    Quantidade de campos:{' '}
+                    <b>{tableDataToEdit?.fields.length}</b>
+                  </Typography>
+                </ListItem>
+              </List>
+            )}
+          </Box>
         </S.DiagramTools>
         <S.DiagramBoard>
-          <Stage width={1000} height={800}>
-            {/* {tables && */}
-            {/* tables.length > 0 && */}
-            {/* tables.map((table) => ( */}
-            {/* <Table */}
-            {/* name={table.name} */}
-            {/* fields={table.fields} */}
-            {/* xPosition={table.xPosition} */}
-            {/* yPosition={table.yPosition} */}
-            {/* /> */}
-            {/* ))} */}
+          <Stage
+            width={1000}
+            height={800}
+            onClick={() => setTableDataToEdit(null)}
+          >
             {nodes &&
               nodes.length > 0 &&
               nodes.map((node) => (
@@ -276,17 +325,9 @@ const Hello = () => {
                   xPosition={node.positionX}
                   yPosition={node.positionY}
                   handleDragMove={updatePosition}
+                  handleClick={setTableToEdit}
+                  connections={[]}
                 />
-                // <Rect
-                //   id={node.id}
-                //   x={node.positionX}
-                //   y={node.positionY}
-                //   width={node.width}
-                //   height={node.height}
-                //   draggable
-                //   stroke="black"
-                //   onDragMove={updatePosition}
-                // />
               ))}
             <Layer x={0} y={0} width={800} height={800}>
               {connectingLines &&
