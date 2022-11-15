@@ -1,22 +1,38 @@
 import React from 'react';
 import { Layer, Rect, Text } from 'react-konva';
+import Konva from 'konva';
 
 const specs = {
   squareHeight: 20,
 };
 
+// export interface TableData
+
 export interface TableData {
+  id: string;
   name: string;
   fields: string[];
   xPosition: number;
   yPosition: number;
+  connections: string[];
 }
 
-export default (data: TableData) => {
-  const { name, fields, xPosition, yPosition } = data;
+export interface TableShapeData extends TableData {
+  handleDragMove: (evt: Konva.KonvaEventObject<DragEvent>) => any;
+}
+
+export default (data: TableShapeData) => {
+  const { id, name, fields, xPosition, yPosition, handleDragMove } = data;
 
   return (
-    <Layer x={xPosition} y={yPosition} width={100} draggable>
+    <Layer
+      id={id}
+      x={xPosition}
+      y={yPosition}
+      width={100}
+      onDragMove={handleDragMove}
+      draggable
+    >
       <div>
         <Rect width={100} height={specs.squareHeight} stroke="black" />
         <Text
