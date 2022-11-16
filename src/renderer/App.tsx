@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Stage, Line, Layer, Rect } from 'react-konva';
 import Konva from 'konva';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import {
   Box,
   Button,
+  FormControl,
   List,
   ListItem,
+  MenuItem,
+  OutlinedInput,
+  Select,
   TextField,
   Typography,
 } from '@mui/material';
@@ -50,6 +54,7 @@ const Hello = () => {
   const [tableDataToEdit, setTableDataToEdit] = useState<TableData | null>(
     null
   );
+  const [isEditing, setIsEditing] = useState<boolean>(false);
 
   const findIndexByIdAndListWithIdAttribute = (
     id: string,
@@ -88,33 +93,8 @@ const Hello = () => {
     });
   };
 
-  useEffect(() => {
-    const fetchTables: TableData[] = [
-      {
-        id: uuidv4(),
-        fields: ['id', 'nome'],
-        name: 'produtos',
-        xPosition: 150,
-        yPosition: 150,
-        connections: [],
-      },
-      {
-        id: uuidv4(),
-        fields: ['id', 'nome'],
-        name: 'tamanhos',
-        xPosition: 450,
-        yPosition: 150,
-        connections: [],
-      },
-    ];
-
-    fetchTables[0].connections.push(fetchTables[1].id);
-    setTables(fetchTables);
-
-    const nodesToFill: NodeType[] = generateNodesFromTables(fetchTables);
-    setNodes(nodesToFill);
-
-    const generateConnectionLines = () => {
+  const generateConnectionLines = useCallback(
+    (nodesToFill: NodeType[]): IConnectingLine[] => {
       const newConnectionLines: IConnectingLine[] = [];
 
       nodesToFill?.forEach((node) => {
@@ -142,12 +122,41 @@ const Hello = () => {
           });
         }
 
-        setConnectingLines(newConnectionLines);
+        return newConnectionLines;
       });
-    };
 
-    generateConnectionLines();
-  }, []);
+      return newConnectionLines;
+    },
+    []
+  );
+
+  useEffect(() => {
+    const fetchTables: TableData[] = [
+      {
+        id: uuidv4(),
+        fields: ['id', 'nome'],
+        name: 'produtos',
+        xPosition: 350,
+        yPosition: 150,
+        connections: [],
+      },
+      {
+        id: uuidv4(),
+        fields: ['id', 'nome'],
+        name: 'tamanhos',
+        xPosition: 550,
+        yPosition: 150,
+        connections: [],
+      },
+    ];
+
+    fetchTables[0].connections.push(fetchTables[1].id);
+    setTables(fetchTables);
+
+    const nodesToFill: NodeType[] = generateNodesFromTables(fetchTables);
+    setNodes(nodesToFill);
+    setConnectingLines(generateConnectionLines(nodesToFill));
+  }, [generateConnectionLines]);
 
   const getNodesIdsConnectingWithMeById = (id: string): string[] => {
     const idlist: string[] = [];
@@ -221,7 +230,10 @@ const Hello = () => {
       );
       nodes[nodeIndex].positionX = evt.target.attrs.x;
       nodes[nodeIndex].positionY = evt.target.attrs.y;
+      tables[nodeIndex].xPosition = evt.target.attrs.x;
+      tables[nodeIndex].yPosition = evt.target.attrs.y;
 
+      setTables(tables);
       setNodes(nodes);
       updateConnectionLinesByNodeId(nodeToUpdateId);
     }
@@ -239,26 +251,63 @@ const Hello = () => {
 
   const handleNovaTabelaButtonClick = () => {
     setHelperMenuOpen(!helperMenuOpen);
+    setIsEditing(false);
+    setTableDataToEdit(null);
   };
 
-  const handleAddTabelaButtonClick = () => {
-    const table = {
-      id: uuidv4(),
-      name: nome,
-      fields: [campo1, campo2],
-      xPosition: 0,
-      yPosition: tables && tables.length ? 100 * tables.length : 0,
-      connections: [],
+  const handleEditarTabelaButtonClick = () => {
+    setHelperMenuOpen(!helperMenuOpen);
+
+    setNome(tableDataToEdit?.name);
+    setCampo1('id');
+    setCampo2('nome');
+    setIsEditing(true);
+  };
+
+  const handleSaveEntityButtonClick = () => {
+    if (isEditing && tableDataToEdit !== null) {
+      const tableIndex = findIndexByIdAndListWithIdAttribute(
+        tableDataToEdit.id,
+        tables
+      );
+      tableDataToEdit.fields = [campo1, campo2];
+      tables[tableIndex] = tableDataToEdit;
+
+      const newTables = [...tables];
+      setTables(newTables);
+      const newNodes = generateNodesFromTables(newTables);
+      setNodes(newNodes);
+      setConnectingLines(generateConnectionLines(newNodes));
+    } else {
+      const table = {
+        id: uuidv4(),
+        name: nome,
+        fields: [campo1, campo2],
+        xPosition: 0,
+        yPosition: tables && tables.length ? 100 * tables.length : 0,
+        connections: [],
+      };
+
+      setNome('');
+      setCampo1('');
+      setCampo2('');
+      const newTables = [...tables, table];
+      setTables(newTables);
+      const newNodes = generateNodesFromTables(newTables);
+      setNodes(newNodes);
+    }
+  };
+
+  const updateTableToEditConnection = (event) => {
+    const newData = {
+      id: tableDataToEdit.id,
+      fields: tableDataToEdit?.fields,
+      name: tableDataToEdit?.name,
+      xPosition: tableDataToEdit?.xPosition,
+      yPosition: tableDataToEdit?.yPosition,
+      connections: [event.target.value],
     };
-
-    setNome('');
-    setCampo1('');
-    setCampo2('');
-
-    const newTables = [...tables, table];
-    const newNodes = generateNodesFromTables(newTables);
-    setTables(newTables);
-    setNodes(newNodes);
+    setTableDataToEdit(newData);
   };
 
   return (
@@ -271,16 +320,17 @@ const Hello = () => {
             fullWidth
             color="primary"
           >
-            Nova Tabela
+            Nova Entidade
           </Button>
           <Button
+            onClick={handleEditarTabelaButtonClick}
             style={{ marginTop: 20 }}
             variant="contained"
             fullWidth
             disabled={tableDataToEdit === null}
             color="secondary"
           >
-            Editar Tabela
+            Editar Entidade
           </Button>
           <hr style={{ marginTop: 20, marginBottom: 30 }} />
           <Box>
@@ -305,6 +355,12 @@ const Hello = () => {
                     <b>{tableDataToEdit?.fields.length}</b>
                   </Typography>
                 </ListItem>
+                <ListItem>
+                  <Typography variant="body2" gutterBottom>
+                    Quantidade de relações:{' '}
+                    <b>{tableDataToEdit?.connections.length}</b>
+                  </Typography>
+                </ListItem>
               </List>
             )}
           </Box>
@@ -313,7 +369,10 @@ const Hello = () => {
           <Stage
             width={1000}
             height={800}
-            onClick={() => setTableDataToEdit(null)}
+            onClick={() => {
+              setTableDataToEdit(null);
+              setHelperMenuOpen(false);
+            }}
           >
             {nodes &&
               nodes.length > 0 &&
@@ -351,7 +410,9 @@ const Hello = () => {
       <S.HelperMenu hidden={!helperMenuOpen}>
         <form>
           <S.AddTableHeader>
-            <h3>Adicionar Tabela</h3>
+            <Typography variant="h5" style={{ marginBottom: 20 }}>
+              {isEditing ? 'Editar' : 'Adicionar'} Entidade
+            </Typography>
             <TextField
               value={nome}
               onChange={(event) => setNome(event.target.value)}
@@ -360,7 +421,12 @@ const Hello = () => {
               variant="outlined"
             />
           </S.AddTableHeader>
-          <h4>Campos</h4>
+          <Typography
+            style={{ marginBottom: 5, marginTop: 25 }}
+            variant="subtitle2"
+          >
+            <b>Campos</b>
+          </Typography>
           <TextField
             value={campo1}
             onChange={(event) => setCampo1(event.target.value)}
@@ -379,6 +445,38 @@ const Hello = () => {
             variant="outlined"
           />
 
+          {isEditing && tableDataToEdit !== null && (
+            <FormControl sx={{ width: 300 }}>
+              <Typography
+                style={{ marginBottom: 5, marginTop: 25 }}
+                variant="subtitle2"
+              >
+                <b>Relações:</b>
+              </Typography>
+              <Select
+                labelId="demo-multiple-name-label"
+                id="demo-multiple-name"
+                value={tableDataToEdit?.connections[0]}
+                onChange={updateTableToEditConnection}
+                input={<OutlinedInput label="Entidades" />}
+                // MenuProps={MenuProps}
+              >
+                {tables.map((table) => {
+                  return (
+                    <MenuItem
+                      key={table.id}
+                      value={table.id}
+                      selected={tableDataToEdit?.connections[0] === table.id}
+                      // style={getStyles(name, personName, theme)}
+                    >
+                      {table.name}
+                    </MenuItem>
+                  );
+                })}
+              </Select>
+            </FormControl>
+          )}
+
           <S.AddTableFooter>
             <Button
               style={{
@@ -388,9 +486,9 @@ const Hello = () => {
               }}
               variant="contained"
               color="success"
-              onClick={handleAddTabelaButtonClick}
+              onClick={handleSaveEntityButtonClick}
             >
-              Adicionar
+              {isEditing ? 'Salvar' : 'Adicionar'}
             </Button>
           </S.AddTableFooter>
         </form>
