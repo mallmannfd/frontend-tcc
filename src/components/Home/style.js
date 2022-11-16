@@ -28,7 +28,7 @@ export const HelperMenu = styled.div`
   background: white;
   right: 0;
   top: 0;
-  width: 450px;
+  width: 1050px;
   height: 100%;
   border: 1px solid #ccc;
 `;

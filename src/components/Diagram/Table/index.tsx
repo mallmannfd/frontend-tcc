@@ -1,21 +1,13 @@
 import React from 'react';
 import { Layer, Rect, Text } from 'react-konva';
 import Konva from 'konva';
+import { TableData } from 'components/Home/components/EntityForm/types';
 
 const specs = {
   squareHeight: 20,
 };
 
 // export interface TableData
-
-export interface TableData {
-  id: string;
-  name: string;
-  fields: string[];
-  xPosition: number;
-  yPosition: number;
-  connections: string[];
-}
 
 export interface TableShapeData extends TableData {
   handleDragMove?: (evt: Konva.KonvaEventObject<DragEvent>) => void;
@@ -26,11 +18,11 @@ export default (data: TableShapeData) => {
   const {
     id,
     name,
-    fields,
     xPosition,
     yPosition,
     handleDragMove,
     handleClick,
+    columns,
   } = data;
 
   return (
@@ -38,29 +30,29 @@ export default (data: TableShapeData) => {
       id={id}
       x={xPosition}
       y={yPosition}
-      width={100}
+      width={150}
       onDragMove={handleDragMove}
       onClick={handleClick}
       draggable
     >
       <div>
-        <Rect width={100} height={specs.squareHeight} stroke="black" />
+        <Rect width={150} height={specs.squareHeight} stroke="black" />
         <Text
-          width={100}
+          width={150}
           height={specs.squareHeight}
           align="center"
           text={name}
           verticalAlign="middle"
         />
       </div>
-      {fields &&
-        fields.map((field, index) => {
+      {columns &&
+        columns.map((field, index) => {
           const position = index + 1;
           return (
             <div id={index.toString()}>
               <Rect
                 y={specs.squareHeight * position}
-                width={100}
+                width={150}
                 height={specs.squareHeight}
                 stroke="black"
               />
@@ -68,10 +60,10 @@ export default (data: TableShapeData) => {
               <Text
                 y={specs.squareHeight * position}
                 x={5}
-                width={100}
+                width={150}
                 height={specs.squareHeight}
                 align="left"
-                text={field}
+                text={`${field.name}: ${field.type}`}
                 verticalAlign="middle"
               />
             </div>

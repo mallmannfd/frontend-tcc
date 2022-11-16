@@ -16,7 +16,9 @@ import {
 } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 
-import Table, { TableData } from 'components/Diagram/Table';
+import Table from 'components/Diagram/Table';
+import EntityForm from 'components/Home/components/EntityForm';
+import { TableData } from 'components/Home/components/EntityForm/types';
 import * as S from '../components/Home/style';
 import './App.css';
 
@@ -86,8 +88,8 @@ const Hello = () => {
         table: tableData,
         positionX: tableData.xPosition,
         positionY: tableData.yPosition,
-        width: 100,
-        height: 20 + tableData.fields.length * 20,
+        width: 150,
+        height: 20 + tableData.columns.length * 20,
         connections: tableData.connections,
       };
     });
@@ -134,15 +136,49 @@ const Hello = () => {
     const fetchTables: TableData[] = [
       {
         id: uuidv4(),
-        fields: ['id', 'nome'],
+        columns: [
+          {
+            name: 'id',
+            type: 'int',
+            isPrimaryKey: true,
+            isNotNull: true,
+            isUnique: true,
+            isAutoIncrement: true,
+          },
+          {
+            name: 'nome',
+            type: 'varchar(255)',
+            isPrimaryKey: false,
+            isNotNull: true,
+            isUnique: false,
+            isAutoIncrement: false,
+          },
+        ],
         name: 'produtos',
-        xPosition: 350,
+        xPosition: 150,
         yPosition: 150,
         connections: [],
       },
       {
         id: uuidv4(),
-        fields: ['id', 'nome'],
+        columns: [
+          {
+            name: 'id',
+            type: 'int',
+            isPrimaryKey: true,
+            isNotNull: true,
+            isUnique: true,
+            isAutoIncrement: true,
+          },
+          {
+            name: 'nome',
+            type: 'varchar(255)',
+            isPrimaryKey: false,
+            isNotNull: true,
+            isUnique: false,
+            isAutoIncrement: false,
+          },
+        ],
         name: 'tamanhos',
         xPosition: 550,
         yPosition: 150,
@@ -264,14 +300,51 @@ const Hello = () => {
     setIsEditing(true);
   };
 
-  const handleSaveEntityButtonClick = () => {
-    if (isEditing && tableDataToEdit !== null) {
+  // const handleSaveEntityButtonClick = () => {
+  //   if (isEditing && tableDataToEdit !== null) {
+  //     const tableIndex = findIndexByIdAndListWithIdAttribute(
+  //       tableDataToEdit.id,
+  //       tables
+  //     );
+  //     tableDataToEdit.fields = [campo1, campo2];
+  //     tables[tableIndex] = tableDataToEdit;
+
+  //     const newTables = [...tables];
+  //     setTables(newTables);
+  //     const newNodes = generateNodesFromTables(newTables);
+  //     setNodes(newNodes);
+  //     setConnectingLines(generateConnectionLines(newNodes));
+  //   } else {
+  //     const table = {
+  //       id: uuidv4(),
+  //       name: nome,
+  //       fields: [campo1, campo2],
+  //       xPosition: 0,
+  //       yPosition: tables && tables.length ? 100 * tables.length : 0,
+  //       connections: [],
+  //     };
+
+  //     setNome('');
+  //     setCampo1('');
+  //     setCampo2('');
+  //     const newTables = [...tables, table];
+  //     setTables(newTables);
+  //     const newNodes = generateNodesFromTables(newTables);
+  //     setNodes(newNodes);
+  //   }
+  // };
+
+  const closeHelperMenu = () => {
+    setHelperMenuOpen(false);
+  };
+
+  const newHandleSaveAction = (entidadeParaSalvar: TableData) => {
+    if (isEditing && entidadeParaSalvar !== null) {
       const tableIndex = findIndexByIdAndListWithIdAttribute(
-        tableDataToEdit.id,
+        entidadeParaSalvar.id,
         tables
       );
-      tableDataToEdit.fields = [campo1, campo2];
-      tables[tableIndex] = tableDataToEdit;
+      tables[tableIndex] = entidadeParaSalvar;
 
       const newTables = [...tables];
       setTables(newTables);
@@ -279,29 +352,21 @@ const Hello = () => {
       setNodes(newNodes);
       setConnectingLines(generateConnectionLines(newNodes));
     } else {
-      const table = {
-        id: uuidv4(),
-        name: nome,
-        fields: [campo1, campo2],
-        xPosition: 0,
-        yPosition: tables && tables.length ? 100 * tables.length : 0,
-        connections: [],
-      };
+      entidadeParaSalvar.yPosition =
+        tables && tables.length ? 100 * tables.length : 0;
 
-      setNome('');
-      setCampo1('');
-      setCampo2('');
-      const newTables = [...tables, table];
+      const newTables = [...tables, entidadeParaSalvar];
       setTables(newTables);
       const newNodes = generateNodesFromTables(newTables);
       setNodes(newNodes);
     }
+
+    closeHelperMenu();
   };
 
   const updateTableToEditConnection = (event) => {
     const newData = {
       id: tableDataToEdit.id,
-      fields: tableDataToEdit?.fields,
       name: tableDataToEdit?.name,
       xPosition: tableDataToEdit?.xPosition,
       yPosition: tableDataToEdit?.yPosition,
@@ -352,7 +417,7 @@ const Hello = () => {
                 <ListItem>
                   <Typography variant="body2" gutterBottom>
                     Quantidade de campos:{' '}
-                    <b>{tableDataToEdit?.fields.length}</b>
+                    <b>{tableDataToEdit?.columns.length}</b>
                   </Typography>
                 </ListItem>
                 <ListItem>
@@ -380,7 +445,7 @@ const Hello = () => {
                 <Table
                   id={node.id}
                   name={node.table.name}
-                  fields={node.table.fields}
+                  columns={node.table.columns}
                   xPosition={node.positionX}
                   yPosition={node.positionY}
                   handleDragMove={updatePosition}
@@ -408,7 +473,19 @@ const Hello = () => {
         </S.DiagramBoard>
       </S.Main>
       <S.HelperMenu hidden={!helperMenuOpen}>
-        <form>
+        {helperMenuOpen && (
+          <EntityForm
+            isEditing={isEditing}
+            tableData={
+              isEditing && tableDataToEdit !== null
+                ? tableDataToEdit
+                : undefined
+            }
+            handleSaveEntityButtonClick={newHandleSaveAction}
+          />
+        )}
+
+        {/* <form>
           <S.AddTableHeader>
             <Typography variant="h5" style={{ marginBottom: 20 }}>
               {isEditing ? 'Editar' : 'Adicionar'} Entidade
@@ -491,7 +568,7 @@ const Hello = () => {
               {isEditing ? 'Salvar' : 'Adicionar'}
             </Button>
           </S.AddTableFooter>
-        </form>
+        </form> */}
       </S.HelperMenu>
     </div>
   );
