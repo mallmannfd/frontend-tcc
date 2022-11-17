@@ -13,7 +13,7 @@ import { AddCircle, RemoveCircle } from '@mui/icons-material';
 import { v4 as uuidv4 } from 'uuid';
 
 import * as S from '../../style';
-import { EntityField, TableData } from './types';
+import { EntityField, EntityRelationshipData, TableData } from './types';
 
 const fieldTypes = [
   {
@@ -38,24 +38,50 @@ const fieldTypes = [
   },
 ];
 
+const relationshipTypes = [
+  {
+    label: 'BELONGS TO',
+    value: 'belongsTo',
+  },
+];
+
 interface EntityFormData {
   isEditing: boolean;
   tableData?: TableData;
   handleSaveEntityButtonClick: (entidadeParaSalvar: TableData) => void;
+  tablesAvailable: TableData[];
 }
 
 export default (data: EntityFormData) => {
-  const { isEditing, tableData, handleSaveEntityButtonClick } = data;
+  const { tablesAvailable, isEditing, tableData, handleSaveEntityButtonClick } =
+    data;
 
   const [nome, setNome] = useState<string>(
     isEditing && typeof tableData !== 'undefined' ? tableData?.name : ''
   );
 
-  const [fields, setFields] = useState<EntityField[]>([]);
+  const [fields, setFields] = useState<EntityField[]>(
+    isEditing && typeof tableData !== 'undefined' ? tableData.columns : []
+  );
+
+  const [relationships, setRelationships] = useState<EntityRelationshipData[]>(
+    isEditing && typeof tableData !== 'undefined' ? tableData.relationships : []
+  );
+
+  const generateConnectionsFromRelationships = (): string[] => {
+    return relationships.map((relationship) => {
+      const index = tablesAvailable?.findIndex(
+        (node) => node.name === relationship.foreignTable
+      );
+      return tablesAvailable[index].id;
+    });
+  };
 
   const save = () => {
     if (typeof tableData !== 'undefined') {
       tableData.name = nome;
+      tableData.connections =
+        generateConnectionsFromRelationships(relationships);
       handleSaveEntityButtonClick(tableData);
     } else {
       const newTableData: TableData = {
@@ -65,6 +91,7 @@ export default (data: EntityFormData) => {
         yPosition: 0,
         connections: [],
         columns: fields,
+        relationships,
       };
 
       handleSaveEntityButtonClick(newTableData);
@@ -83,6 +110,16 @@ export default (data: EntityFormData) => {
     setFields([...fields]);
   };
 
+  const handleAddRelationshipClick = () => {
+    relationships.push({
+      column: '0',
+      foreignColumn: '0',
+      foreignTable: '0',
+      type: '0',
+    });
+    setRelationships([...relationships]);
+  };
+
   const handleChangeFieldName = (value: string, index: number) => {
     fields[index].name = value;
     setFields([...fields]);
@@ -90,8 +127,36 @@ export default (data: EntityFormData) => {
 
   const handleChangeFieldType = (value: string, index: number) => {
     fields[index].type = value;
-    console.log(fields[index]);
     setFields([...fields]);
+  };
+
+  const handleChangeRelationshipType = (value: string, index: number) => {
+    relationships[index].type = value;
+    setRelationships([...relationships]);
+  };
+
+  const handleChangeRelationshipSourceColumn = (
+    value: string,
+    index: number
+  ) => {
+    relationships[index].column = value;
+    setRelationships([...relationships]);
+  };
+
+  const handleChangeRelationshipForeignEntity = (
+    value: string,
+    index: number
+  ) => {
+    relationships[index].foreignTable = value;
+    setRelationships([...relationships]);
+  };
+
+  const handleChangeRelationshipForeignColumn = (
+    value: string,
+    index: number
+  ) => {
+    relationships[index].foreignColumn = value;
+    setRelationships([...relationships]);
   };
 
   const handleToggleFieldPK = (value: boolean, index: number) => {
@@ -103,6 +168,12 @@ export default (data: EntityFormData) => {
   const handleToggleFieldNotNull = (value: boolean, index: number) => {
     fields[index].isNotNull = value;
     setFields([...fields]);
+  };
+
+  const getTableColumnsByName = (tableName: string): EntityField[] => {
+    const index = tablesAvailable?.findIndex((node) => node.name === tableName);
+
+    return tablesAvailable[index].columns;
   };
 
   return (
@@ -190,6 +261,131 @@ export default (data: EntityFormData) => {
           );
         })}
       </Box>
+
+      {isEditing && (
+        <>
+          <Typography
+            style={{ marginBottom: 5, marginTop: 25 }}
+            variant="subtitle2"
+          >
+            <b>Relações</b>
+          </Typography>
+          <hr />
+
+          <Box>
+            <Button
+              color="success"
+              variant="contained"
+              onClick={handleAddRelationshipClick}
+            >
+              <AddCircle />
+            </Button>
+          </Box>
+
+          <Box style={{ marginTop: 40 }}>
+            {relationships.map((relationship, index) => {
+              return (
+                <Box style={{ marginBottom: 10 }}>
+                  <Select
+                    size="small"
+                    value={relationships[index].type}
+                    onChange={(event) =>
+                      handleChangeRelationshipType(
+                        event.target.value.toString(),
+                        index
+                      )
+                    }
+                  >
+                    <MenuItem disabled selected value="0">
+                      Tipo da Relação
+                    </MenuItem>
+                    {relationshipTypes.map((relationshipType) => {
+                      return (
+                        <MenuItem
+                          key={relationshipType.value}
+                          value={relationshipType.value}
+                        >
+                          {relationshipType.label}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                  <Select
+                    style={{ marginLeft: 20 }}
+                    size="small"
+                    value={relationships[index].foreignTable}
+                    onChange={(event) =>
+                      handleChangeRelationshipForeignEntity(
+                        event.target.value.toString(),
+                        index
+                      )
+                    }
+                  >
+                    <MenuItem disabled selected value="0">
+                      Tabela Destino
+                    </MenuItem>
+                    {tablesAvailable.map((table) => {
+                      return (
+                        <MenuItem key={table.name} value={table.name}>
+                          {table.name}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                  <Select
+                    style={{ marginLeft: 20 }}
+                    size="small"
+                    value={relationships[index].column}
+                    onChange={(event) =>
+                      handleChangeRelationshipSourceColumn(
+                        event.target.value.toString(),
+                        index
+                      )
+                    }
+                  >
+                    <MenuItem disabled selected value="0">
+                      Coluna Origem
+                    </MenuItem>
+                    {fields.map((field) => {
+                      return (
+                        <MenuItem key={field.name} value={field.name}>
+                          {field.name}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                  <Select
+                    style={{ marginLeft: 20 }}
+                    size="small"
+                    value={relationships[index].foreignColumn}
+                    disabled={relationships[index].foreignTable === '0'}
+                    onChange={(event) =>
+                      handleChangeRelationshipForeignColumn(
+                        event.target.value.toString(),
+                        index
+                      )
+                    }
+                  >
+                    <MenuItem disabled selected value="0">
+                      Coluna Destino
+                    </MenuItem>
+                    {relationships[index].foreignTable !== '0' &&
+                      getTableColumnsByName(
+                        relationships[index].foreignTable
+                      ).map((field) => {
+                        return (
+                          <MenuItem key={field.name} value={field.name}>
+                            {field.name}
+                          </MenuItem>
+                        );
+                      })}
+                  </Select>
+                </Box>
+              );
+            })}
+          </Box>
+        </>
+      )}
 
       <hr />
 

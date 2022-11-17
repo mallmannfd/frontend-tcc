@@ -8,6 +8,13 @@ export interface EntityField {
   expression?: string;
 }
 
+export interface EntityRelationshipData {
+  type: string;
+  column: string;
+  foreignTable: string;
+  foreignColumn: string;
+}
+
 export interface TableData {
   id: string;
   name: string;
@@ -15,4 +22,5 @@ export interface TableData {
   yPosition: number;
   connections: string[];
   columns: EntityField[];
+  relationships: EntityRelationshipData[];
 }

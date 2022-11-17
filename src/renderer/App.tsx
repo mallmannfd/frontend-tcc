@@ -49,8 +49,6 @@ const Hello = () => {
   const [helperMenuOpen, setHelperMenuOpen] = useState(false);
   const [tables, setTables] = useState<TableData[]>([]);
   const [nome, setNome] = useState('');
-  const [campo1, setCampo1] = useState('');
-  const [campo2, setCampo2] = useState('');
   const [nodes, setNodes] = useState<NodeType[]>([]);
   const [connectingLines, setConnectingLines] = useState<IConnectingLine[]>([]);
   const [tableDataToEdit, setTableDataToEdit] = useState<TableData | null>(
@@ -158,6 +156,7 @@ const Hello = () => {
         xPosition: 150,
         yPosition: 150,
         connections: [],
+        relationships: [],
       },
       {
         id: uuidv4(),
@@ -183,10 +182,10 @@ const Hello = () => {
         xPosition: 550,
         yPosition: 150,
         connections: [],
+        relationships: [],
       },
     ];
 
-    fetchTables[0].connections.push(fetchTables[1].id);
     setTables(fetchTables);
 
     const nodesToFill: NodeType[] = generateNodesFromTables(fetchTables);
@@ -295,8 +294,6 @@ const Hello = () => {
     setHelperMenuOpen(!helperMenuOpen);
 
     setNome(tableDataToEdit?.name);
-    setCampo1('id');
-    setCampo2('nome');
     setIsEditing(true);
   };
 
@@ -362,17 +359,6 @@ const Hello = () => {
     }
 
     closeHelperMenu();
-  };
-
-  const updateTableToEditConnection = (event) => {
-    const newData = {
-      id: tableDataToEdit.id,
-      name: tableDataToEdit?.name,
-      xPosition: tableDataToEdit?.xPosition,
-      yPosition: tableDataToEdit?.yPosition,
-      connections: [event.target.value],
-    };
-    setTableDataToEdit(newData);
   };
 
   return (
@@ -450,6 +436,7 @@ const Hello = () => {
                   yPosition={node.positionY}
                   handleDragMove={updatePosition}
                   handleClick={setTableToEdit}
+                  relationships={node.table.relationships}
                   connections={[]}
                 />
               ))}
@@ -475,6 +462,7 @@ const Hello = () => {
       <S.HelperMenu hidden={!helperMenuOpen}>
         {helperMenuOpen && (
           <EntityForm
+            tablesAvailable={tables}
             isEditing={isEditing}
             tableData={
               isEditing && tableDataToEdit !== null
