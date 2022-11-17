@@ -5,10 +5,12 @@ import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import {
   Box,
   Button,
+  CircularProgress,
   FormControl,
   List,
   ListItem,
   MenuItem,
+  Modal,
   OutlinedInput,
   Select,
   TextField,
@@ -19,6 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Table from 'components/Diagram/Table';
 import EntityForm from 'components/Home/components/EntityForm';
 import { TableData } from 'components/Home/components/EntityForm/types';
+import api from 'services/api';
 import * as S from '../components/Home/style';
 import './App.css';
 
@@ -55,6 +58,9 @@ const Hello = () => {
     null
   );
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [downloadLink, setDownloadLink] = useState<string>('');
 
   const findIndexByIdAndListWithIdAttribute = (
     id: string,
@@ -297,40 +303,6 @@ const Hello = () => {
     setIsEditing(true);
   };
 
-  // const handleSaveEntityButtonClick = () => {
-  //   if (isEditing && tableDataToEdit !== null) {
-  //     const tableIndex = findIndexByIdAndListWithIdAttribute(
-  //       tableDataToEdit.id,
-  //       tables
-  //     );
-  //     tableDataToEdit.fields = [campo1, campo2];
-  //     tables[tableIndex] = tableDataToEdit;
-
-  //     const newTables = [...tables];
-  //     setTables(newTables);
-  //     const newNodes = generateNodesFromTables(newTables);
-  //     setNodes(newNodes);
-  //     setConnectingLines(generateConnectionLines(newNodes));
-  //   } else {
-  //     const table = {
-  //       id: uuidv4(),
-  //       name: nome,
-  //       fields: [campo1, campo2],
-  //       xPosition: 0,
-  //       yPosition: tables && tables.length ? 100 * tables.length : 0,
-  //       connections: [],
-  //     };
-
-  //     setNome('');
-  //     setCampo1('');
-  //     setCampo2('');
-  //     const newTables = [...tables, table];
-  //     setTables(newTables);
-  //     const newNodes = generateNodesFromTables(newTables);
-  //     setNodes(newNodes);
-  //   }
-  // };
-
   const closeHelperMenu = () => {
     setHelperMenuOpen(false);
   };
@@ -361,8 +333,57 @@ const Hello = () => {
     closeHelperMenu();
   };
 
+  const handleGenerateProject = async () => {
+    try {
+      // Para API em PHP
+      setIsLoading(true);
+      setIsModalOpen(true);
+      const result = await api.post('project', { json: tables });
+      setDownloadLink(
+        `http://localhost/${result.data.resource.projectPathDownload}`
+      );
+      setIsLoading(false);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const confirmationModalStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'background.paper',
+    boxShadow: 24,
+    p: 4,
+  };
+
   return (
     <div>
+      <Modal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        {isLoading ? (
+          <Box style={{ height: '100%', display: 'flex' }}>
+            <Box style={{ margin: 'auto' }}>
+              <CircularProgress />
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={confirmationModalStyle}>
+            <Typography id="modal-modal-title" variant="h6" component="h2">
+              Projeto gerado com sucesso!
+            </Typography>
+            <Typography id="modal-modal-description" sx={{ mt: 2 }}>
+              <a href={downloadLink}>Clique aqui</a> para baixar o projeto
+            </Typography>
+          </Box>
+        )}
+      </Modal>
       <S.Main>
         <S.DiagramTools>
           <Button
@@ -382,6 +403,16 @@ const Hello = () => {
             color="secondary"
           >
             Editar Entidade
+          </Button>
+          <Button
+            onClick={handleGenerateProject}
+            style={{ marginTop: 20 }}
+            variant="contained"
+            fullWidth
+            disabled={nodes.length === 0}
+            color="success"
+          >
+            Gerar Projeto
           </Button>
           <hr style={{ marginTop: 20, marginBottom: 30 }} />
           <Box>
