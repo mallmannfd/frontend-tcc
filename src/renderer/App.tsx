@@ -20,8 +20,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import Table from 'components/Diagram/Table';
 import EntityForm from 'components/Home/components/EntityForm';
-import { TableData } from 'components/Home/components/EntityForm/types';
-import api from 'services/api';
+import { EntityData } from 'components/Home/components/EntityForm/types';
+import api, { javaApi } from 'services/api';
 import * as S from '../components/Home/style';
 import './App.css';
 
@@ -34,7 +34,7 @@ interface RectType {
 
 interface NodeType extends RectType {
   id: string;
-  table: TableData;
+  table: EntityData;
   connections: string[];
 }
 
@@ -50,11 +50,11 @@ interface IConnectingLine {
 
 const Hello = () => {
   const [helperMenuOpen, setHelperMenuOpen] = useState(false);
-  const [tables, setTables] = useState<TableData[]>([]);
+  const [tables, setTables] = useState<EntityData[]>([]);
   const [nome, setNome] = useState('');
   const [nodes, setNodes] = useState<NodeType[]>([]);
   const [connectingLines, setConnectingLines] = useState<IConnectingLine[]>([]);
-  const [tableDataToEdit, setTableDataToEdit] = useState<TableData | null>(
+  const [tableDataToEdit, setTableDataToEdit] = useState<EntityData | null>(
     null
   );
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -85,7 +85,7 @@ const Hello = () => {
     return node.positionY + node.height / 2;
   };
 
-  const generateNodesFromTables = (tablesData: TableData[]): NodeType[] => {
+  const generateNodesFromTables = (tablesData: EntityData[]): NodeType[] => {
     return tablesData.map((tableData) => {
       return {
         id: tableData.id,
@@ -137,7 +137,7 @@ const Hello = () => {
   );
 
   useEffect(() => {
-    const fetchTables: TableData[] = [
+    const fetchTables: EntityData[] = [
       {
         id: uuidv4(),
         columns: [
@@ -163,6 +163,14 @@ const Hello = () => {
         yPosition: 150,
         connections: [],
         relationships: [],
+        indexes: [
+          {
+            fields: ['id'],
+            primaryKey: true,
+            name: null,
+            unique: false,
+          },
+        ],
       },
       {
         id: uuidv4(),
@@ -189,6 +197,9 @@ const Hello = () => {
         yPosition: 150,
         connections: [],
         relationships: [],
+        indexes: [
+          { fields: ['id'], primaryKey: true, name: null, unique: false },
+        ],
       },
     ];
 
@@ -307,7 +318,7 @@ const Hello = () => {
     setHelperMenuOpen(false);
   };
 
-  const newHandleSaveAction = (entidadeParaSalvar: TableData) => {
+  const newHandleSaveAction = (entidadeParaSalvar: EntityData) => {
     if (isEditing && entidadeParaSalvar !== null) {
       const tableIndex = findIndexByIdAndListWithIdAttribute(
         entidadeParaSalvar.id,
@@ -336,12 +347,24 @@ const Hello = () => {
   const handleGenerateProject = async () => {
     try {
       // Para API em PHP
+      // setIsLoading(true);
+      // setIsModalOpen(true);
+      // const result = await api.post('project', { json: tables });
+      // setDownloadLink(
+      // `http://localhost/${result.data.resource.projectPathDownload}`
+      // );
+      // setIsLoading(false);
+      //
+      //-----------------
+      //
+      // Para API em Java
       setIsLoading(true);
       setIsModalOpen(true);
-      const result = await api.post('project', { json: tables });
-      setDownloadLink(
-        `http://localhost/${result.data.resource.projectPathDownload}`
-      );
+      const result = await javaApi.post('generate-project', tables, {
+        responseType: 'blob',
+      });
+
+      setDownloadLink(URL.createObjectURL(result.data));
       setIsLoading(false);
     } catch (err) {
       console.log(err);
@@ -469,6 +492,7 @@ const Hello = () => {
                   handleClick={setTableToEdit}
                   relationships={node.table.relationships}
                   connections={[]}
+                  indexes={node.table.indexes}
                 />
               ))}
             <Layer x={0} y={0} width={800} height={800}>
@@ -503,91 +527,6 @@ const Hello = () => {
             handleSaveEntityButtonClick={newHandleSaveAction}
           />
         )}
-
-        {/* <form>
-          <S.AddTableHeader>
-            <Typography variant="h5" style={{ marginBottom: 20 }}>
-              {isEditing ? 'Editar' : 'Adicionar'} Entidade
-            </Typography>
-            <TextField
-              value={nome}
-              onChange={(event) => setNome(event.target.value)}
-              id="nome-tabela"
-              label="Nome"
-              variant="outlined"
-            />
-          </S.AddTableHeader>
-          <Typography
-            style={{ marginBottom: 5, marginTop: 25 }}
-            variant="subtitle2"
-          >
-            <b>Campos</b>
-          </Typography>
-          <TextField
-            value={campo1}
-            onChange={(event) => setCampo1(event.target.value)}
-            fullWidth
-            id="campo1"
-            label="Campo 1"
-            variant="outlined"
-          />
-          <TextField
-            value={campo2}
-            onChange={(event) => setCampo2(event.target.value)}
-            style={{ marginTop: '15px' }}
-            fullWidth
-            id="campo2"
-            label="Campo 2"
-            variant="outlined"
-          />
-
-          {isEditing && tableDataToEdit !== null && (
-            <FormControl sx={{ width: 300 }}>
-              <Typography
-                style={{ marginBottom: 5, marginTop: 25 }}
-                variant="subtitle2"
-              >
-                <b>Relações:</b>
-              </Typography>
-              <Select
-                labelId="demo-multiple-name-label"
-                id="demo-multiple-name"
-                value={tableDataToEdit?.connections[0]}
-                onChange={updateTableToEditConnection}
-                input={<OutlinedInput label="Entidades" />}
-                // MenuProps={MenuProps}
-              >
-                {tables.map((table) => {
-                  return (
-                    <MenuItem
-                      key={table.id}
-                      value={table.id}
-                      selected={tableDataToEdit?.connections[0] === table.id}
-                      // style={getStyles(name, personName, theme)}
-                    >
-                      {table.name}
-                    </MenuItem>
-                  );
-                })}
-              </Select>
-            </FormControl>
-          )}
-
-          <S.AddTableFooter>
-            <Button
-              style={{
-                backgroundColor: '#2e7d32',
-                marginTop: '25px',
-                color: 'white',
-              }}
-              variant="contained"
-              color="success"
-              onClick={handleSaveEntityButtonClick}
-            >
-              {isEditing ? 'Salvar' : 'Adicionar'}
-            </Button>
-          </S.AddTableFooter>
-        </form> */}
       </S.HelperMenu>
     </div>
   );

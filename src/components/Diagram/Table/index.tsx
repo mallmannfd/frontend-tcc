@@ -1,7 +1,7 @@
 import React from 'react';
 import { Layer, Rect, Text } from 'react-konva';
 import Konva from 'konva';
-import { TableData } from 'components/Home/components/EntityForm/types';
+import { EntityData } from 'components/Home/components/EntityForm/types';
 
 const specs = {
   squareHeight: 20,
@@ -9,7 +9,7 @@ const specs = {
 
 // export interface TableData
 
-export interface TableShapeData extends TableData {
+export interface TableShapeData extends EntityData {
   handleDragMove?: (evt: Konva.KonvaEventObject<DragEvent>) => void;
   handleClick?: (evt: Konva.KonvaEventObject<MouseEvent>) => void;
 }

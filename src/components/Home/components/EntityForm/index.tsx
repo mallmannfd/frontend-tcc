@@ -13,7 +13,12 @@ import { AddCircle, RemoveCircle } from '@mui/icons-material';
 import { v4 as uuidv4 } from 'uuid';
 
 import * as S from '../../style';
-import { EntityField, EntityRelationshipData, TableData } from './types';
+import {
+  EntityField,
+  EntityRelationshipData,
+  EntityData,
+  EntityIndexData,
+} from './types';
 
 const fieldTypes = [
   {
@@ -47,9 +52,9 @@ const relationshipTypes = [
 
 interface EntityFormData {
   isEditing: boolean;
-  tableData?: TableData;
-  handleSaveEntityButtonClick: (entidadeParaSalvar: TableData) => void;
-  tablesAvailable: TableData[];
+  tableData?: EntityData;
+  handleSaveEntityButtonClick: (entidadeParaSalvar: EntityData) => void;
+  tablesAvailable: EntityData[];
 }
 
 export default (data: EntityFormData) => {
@@ -68,6 +73,10 @@ export default (data: EntityFormData) => {
     isEditing && typeof tableData !== 'undefined' ? tableData.relationships : []
   );
 
+  const [indexes, setIndexes] = useState<EntityIndexData[]>(
+    isEditing && typeof tableData !== 'undefined' ? tableData.indexes : []
+  );
+
   const generateConnectionsFromRelationships = (): string[] => {
     return relationships.map((relationship) => {
       const index = tablesAvailable?.findIndex(
@@ -80,11 +89,11 @@ export default (data: EntityFormData) => {
   const save = () => {
     if (typeof tableData !== 'undefined') {
       tableData.name = nome;
-      tableData.connections =
-        generateConnectionsFromRelationships(relationships);
+      tableData.connections = generateConnectionsFromRelationships();
+      tableData.indexes = indexes;
       handleSaveEntityButtonClick(tableData);
     } else {
-      const newTableData: TableData = {
+      const newTableData: EntityData = {
         id: uuidv4(),
         name: nome,
         xPosition: 0,
@@ -92,6 +101,7 @@ export default (data: EntityFormData) => {
         connections: [],
         columns: fields,
         relationships,
+        indexes: [],
       };
 
       handleSaveEntityButtonClick(newTableData);
@@ -159,9 +169,36 @@ export default (data: EntityFormData) => {
     setRelationships([...relationships]);
   };
 
+  const findFieldIndexByFieldName = (fieldName: string) => {
+    const indexIndex = indexes.findIndex(
+      (index) => index.fields[0] === fieldName
+    );
+
+    return indexIndex;
+  };
+
   const handleToggleFieldPK = (value: boolean, index: number) => {
     fields[index].isPrimaryKey = value;
     fields[index].isAutoIncrement = value;
+
+    const indexIndex = findFieldIndexByFieldName(fields[index].name);
+
+    if (indexIndex === -1) {
+      if (value) {
+        const newIndex: EntityIndexData = {
+          fields: [fields[index].name],
+          name: null,
+          primaryKey: true,
+          unique: false,
+        };
+        const newIndexes = [...indexes, newIndex];
+        setIndexes(newIndexes);
+      }
+    } else if (!value) {
+      indexes.splice(indexIndex, 1);
+      setIndexes([...indexes]);
+    }
+
     setFields([...fields]);
   };
 

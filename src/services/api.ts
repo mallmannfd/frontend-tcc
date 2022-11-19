@@ -6,3 +6,8 @@ const api = axios.create({
 });
 
 export default api;
+
+const javaApiUrl = 'http://localhost:8080/';
+export const javaApi = axios.create({
+  baseURL: javaApiUrl,
+});

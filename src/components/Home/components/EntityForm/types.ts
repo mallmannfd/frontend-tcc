@@ -15,7 +15,14 @@ export interface EntityRelationshipData {
   foreignColumn: string;
 }
 
-export interface TableData {
+export interface EntityIndexData {
+  fields: string[];
+  primaryKey: boolean;
+  name: null | string;
+  unique: boolean;
+}
+
+export interface EntityData {
   id: string;
   name: string;
   xPosition: number;
@@ -23,4 +30,5 @@ export interface TableData {
   connections: string[];
   columns: EntityField[];
   relationships: EntityRelationshipData[];
+  indexes: EntityIndexData[];
 }
