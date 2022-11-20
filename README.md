@@ -1,4 +1,4 @@
-# backend-tcc
+# frontend-tcc
 
 Aplicação para geração de DER e exportação de projeto
 
