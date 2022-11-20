@@ -101,7 +101,7 @@ export default (data: EntityFormData) => {
         connections: [],
         columns: fields,
         relationships,
-        indexes: [],
+        indexes,
       };
 
       handleSaveEntityButtonClick(newTableData);
